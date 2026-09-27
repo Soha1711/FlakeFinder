@@ -585,6 +585,86 @@ class TestBobSubprocessContract:
 
 
 # ---------------------------------------------------------------------------
+# Tests: raw last_message debug file written to state/debug/
+# ---------------------------------------------------------------------------
+
+
+class TestRawResponseDebugFile:
+    """_invoke_bob() must write the raw last_message to state/debug/isolation_raw_response.txt."""
+
+    def test_raw_string_last_message_written_verbatim(self, tmp_path, monkeypatch):
+        """When last_message is a JSON string, the exact string is written to the debug file."""
+        isolation = _make_valid_isolation_dict()
+        envelope = _bob_envelope(isolation)          # last_message is a JSON string
+        fake_proc = _fake_proc(stdout=envelope)
+
+        monkeypatch.setattr(run_investigation, "_DEBUG_DIR", tmp_path / "debug")
+
+        with patch("run_investigation._resolve_bob", return_value=["/usr/bin/bob"]):
+            with patch("run_investigation.subprocess.run", return_value=fake_proc):
+                run_investigation.run(NODE_ID)
+
+        debug_file = tmp_path / "debug" / "isolation_raw_response.txt"
+        assert debug_file.exists(), "Debug file was not created"
+        written = debug_file.read_text(encoding="utf-8")
+        # The written text must be the raw JSON string (not a re-serialisation of the dict)
+        assert written == json.dumps(isolation)
+
+    def test_raw_dict_last_message_written_as_json(self, tmp_path, monkeypatch):
+        """When last_message is a dict, it is serialised with json.dumps(indent=2)."""
+        isolation = _make_valid_isolation_dict()
+        envelope = _bob_envelope_dict(isolation)     # last_message is already a dict
+        fake_proc = _fake_proc(stdout=envelope)
+
+        monkeypatch.setattr(run_investigation, "_DEBUG_DIR", tmp_path / "debug")
+
+        with patch("run_investigation._resolve_bob", return_value=["/usr/bin/bob"]):
+            with patch("run_investigation.subprocess.run", return_value=fake_proc):
+                run_investigation.run(NODE_ID)
+
+        debug_file = tmp_path / "debug" / "isolation_raw_response.txt"
+        assert debug_file.exists(), "Debug file was not created"
+        written = debug_file.read_text(encoding="utf-8")
+        assert written == json.dumps(isolation, indent=2)
+
+    def test_debug_directory_created_if_missing(self, tmp_path, monkeypatch):
+        """state/debug/ is created automatically when it does not exist."""
+        isolation = _make_valid_isolation_dict()
+        envelope = _bob_envelope(isolation)
+        fake_proc = _fake_proc(stdout=envelope)
+
+        debug_dir = tmp_path / "nonexistent" / "debug"
+        assert not debug_dir.exists()
+        monkeypatch.setattr(run_investigation, "_DEBUG_DIR", debug_dir)
+
+        with patch("run_investigation._resolve_bob", return_value=["/usr/bin/bob"]):
+            with patch("run_investigation.subprocess.run", return_value=fake_proc):
+                run_investigation.run(NODE_ID)
+
+        assert debug_dir.exists(), "state/debug/ was not created"
+        assert (debug_dir / "isolation_raw_response.txt").exists()
+
+    def test_debug_write_failure_does_not_abort_run(self, tmp_path, monkeypatch, capsys):
+        """If writing the debug file fails, _invoke_bob() must still succeed."""
+        isolation = _make_valid_isolation_dict()
+        envelope = _bob_envelope(isolation)
+        fake_proc = _fake_proc(stdout=envelope)
+
+        # Point _DEBUG_DIR at a path whose *parent* is a file (so mkdir will fail).
+        blocker = tmp_path / "blocker"
+        blocker.write_text("I am a file, not a directory")
+        monkeypatch.setattr(run_investigation, "_DEBUG_DIR", blocker / "debug")
+
+        with patch("run_investigation._resolve_bob", return_value=["/usr/bin/bob"]):
+            with patch("run_investigation.subprocess.run", return_value=fake_proc):
+                data = run_investigation.run(NODE_ID)
+
+        # The run must still succeed and return valid data.
+        run_investigation._validate(data, NODE_ID)
+        assert "[ISOLATION] using real Bob" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
 # Tests: run() rejects invalid node ID
 # ---------------------------------------------------------------------------
 

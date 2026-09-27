@@ -1,3 +1,4 @@
+```json
 {
   "subagent": "isolation",
   "test_name": "tests/test_b_race.py::test_background_update_completes",
@@ -5,3 +6,4 @@
   "hypothesis": "The test fails in isolation (2 out of 10 runs), ruling out order-dependency and pointing to an intrinsic timing or race condition within the test itself.",
   "confidence": "high"
 }
+```
