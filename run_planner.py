@@ -30,6 +30,7 @@ run for every investigated test regardless of what hypotheses the Planner return
 
 import ast
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -44,6 +45,7 @@ _PLANNER_PROMPT = _HERE / "bob_prompts" / "planner_prompt.md"
 _DEMO_REPO = _HERE / "demo-repo"
 _OUTPUT_DIR = _HERE / "state" / "evidence"
 _OUTPUT_FILE = _OUTPUT_DIR / "planner_out.json"
+_DOTENV_FILE = _HERE / ".env"
 
 # Hypothesis labels (matches planner_prompt.md vocabulary exactly)
 _HYPOTHESIS_ORDER = "order_dependency"
@@ -75,18 +77,134 @@ def _validate(data: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Bob executable resolution + environment helpers
+# ---------------------------------------------------------------------------
+
+
+def _resolve_bob() -> list[str] | None:
+    """
+    Return the argv prefix needed to run Bob Shell on this platform.
+
+    On Windows, `shutil.which("bob")` may resolve to `bob.CMD`, which is a
+    batch-file wrapper around `node <npm_dir>/node_modules/bobshell/dist/bob.js`.
+    Batch files cannot be executed directly by Python's subprocess on Windows
+    without shell=True (which causes stdin/stdout pipe issues), so we detect
+    the `.CMD` case and build a [node, bob.js] prefix instead.
+
+    Returns a list such as:
+        Unix/EXE:   ["/usr/local/bin/bob"]
+        Windows CMD: ["C:/Program Files/nodejs/node.exe",
+                      "C:/Users/.../node_modules/bobshell/dist/bob.js"]
+    Returns None if Bob cannot be found.
+    """
+    bob_path = shutil.which("bob")
+    if bob_path is None:
+        return None
+
+    # On Windows, prefer the .cmd wrapper's companion bob.js invoked via node,
+    # avoiding shell=True and the batch-file stdin-pipe deadlock.
+    if sys.platform == "win32" and bob_path.lower().endswith((".cmd", ".bat")):
+        node_path = shutil.which("node")
+        if node_path is None:
+            return None  # Node not on PATH — cannot invoke bob.js
+        bob_dir = os.path.dirname(bob_path)
+        bob_js = os.path.join(bob_dir, "node_modules", "bobshell", "dist", "bob.js")
+        if not os.path.exists(bob_js):
+            return None  # bob.js not where expected
+        return [node_path, bob_js]
+
+    # Unix or native Windows EXE — invoke directly.
+    return [bob_path]
+
+
+def _load_bob_env() -> dict:
+    """
+    Return an environment dict for the Bob subprocess.
+
+    Bob Shell requires BOB_API_KEY.  When it is already present in the
+    current process environment it is inherited automatically.  When it is
+    absent we attempt to load it from a .env file in the project root
+    (FlakeFinder/.env) using a minimal line-parser so we avoid adding a
+    dotenv dependency.
+
+    The returned dict is a copy of os.environ with BOB_API_KEY injected if
+    found, or os.environ unchanged if it is already set or not found.
+    """
+    env = dict(os.environ)
+    if env.get("BOB_API_KEY"):
+        return env  # already present — nothing to do
+
+    if not _DOTENV_FILE.exists():
+        return env
+
+    try:
+        for raw_line in _DOTENV_FILE.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key in ("BOB_API_KEY", "BOBSHELL_API_KEY") and value:
+                env["BOB_API_KEY"] = value
+                break
+    except OSError:
+        pass
+
+    return env
+
+
+# ---------------------------------------------------------------------------
 # Bob invocation path
 # ---------------------------------------------------------------------------
 
+# Allowed hypothesis labels (matches planner_prompt.md vocabulary exactly)
+_ALLOWED_HYPOTHESES = frozenset({
+    _HYPOTHESIS_ORDER,
+    _HYPOTHESIS_RACE,
+    _HYPOTHESIS_RANDOM,
+    _HYPOTHESIS_REGRESSION,
+})
+
+
+def _normalize_hypotheses(raw: list) -> list[str]:
+    """Return only hypothesis values that are in the allowed enum; preserve order."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for h in raw:
+        if isinstance(h, str) and h in _ALLOWED_HYPOTHESES and h not in seen:
+            result.append(h)
+            seen.add(h)
+    return result
+
+
 def _build_bob_prompt(test_file: str, test_function: str) -> str:
-    """Assemble the full prompt text to send to Bob on stdin."""
-    system_prompt = _PLANNER_PROMPT.read_text(encoding="utf-8")
+    """Assemble the full prompt text to pass to Bob Shell.
+
+    Structure:
+        <planner_prompt.md — instructions verbatim>
+
+        --- BEGIN TEST CONTEXT ---
+        Test node ID: <full pytest node ID>
+        Test file:    <test_file>
+
+        [TEST FILE CONTENTS]
+        <source of test_file>
+
+        [GIT LOG]
+        <last 20 commits touching test_file>
+        --- END TEST CONTEXT ---
+
+        Return ONLY the Planner JSON object. Do not explain your answer.
+        Do not use markdown fences.
+    """
+    system_prompt = _PLANNER_PROMPT.read_text(encoding="utf-8").rstrip()
 
     # Append test file content if it exists inside demo-repo.
     test_file_path = _DEMO_REPO / test_file
     test_file_content = ""
     if test_file_path.exists():
-        test_file_content = test_file_path.read_text(encoding="utf-8")
+        test_file_content = test_file_path.read_text(encoding="utf-8").rstrip()
 
     # Append the last 20 lines of git log for the test file from demo-repo.
     git_log = ""
@@ -102,32 +220,43 @@ def _build_bob_prompt(test_file: str, test_function: str) -> str:
     except Exception:
         git_log = "(git log unavailable)"
 
+    node_id = f"{test_file}::{test_function}"
+
     return (
         f"{system_prompt}\n\n"
-        f"--- TEST FILE: {test_file} ---\n{test_file_content}\n\n"
-        f"--- GIT LOG (last 20 commits touching {test_file}) ---\n{git_log}\n\n"
-        f"Investigate: {test_file}::{test_function}"
+        f"--- BEGIN TEST CONTEXT ---\n"
+        f"Test node ID: {node_id}\n"
+        f"Test file:    {test_file}\n\n"
+        f"[TEST FILE CONTENTS]\n{test_file_content}\n\n"
+        f"[GIT LOG]\n{git_log}\n"
+        f"--- END TEST CONTEXT ---\n\n"
+        f"Return ONLY the Planner JSON object. Do not explain your answer. "
+        f"Do not use markdown fences."
     )
 
 
 def _invoke_bob(node_id: str, test_file: str, test_function: str) -> dict | None:
     """
-    Try to call the `bob` CLI. Return a validated dict on success, or None on any failure.
+    Try to call the Bob Shell CLI via `bob run --format json "<prompt>"`.
+    Parses the Bob Shell JSON envelope and extracts `last_message` as the Planner JSON.
+    Returns a validated dict on success, or None on any failure.
     Writes 'BOB FAILED: <reason>' to stderr on failure.
     """
-    bob_path = shutil.which("bob")
-    if bob_path is None:
+    argv_prefix = _resolve_bob()
+    if argv_prefix is None:
         return None  # Bob not on PATH — silent, fallback activates
 
     prompt_text = _build_bob_prompt(test_file, test_function)
+    bob_env = _load_bob_env()
 
     try:
         proc = subprocess.run(
-            [bob_path],
-            input=prompt_text,
+            argv_prefix + ["run", "--format", "json", prompt_text],
+            stdin=subprocess.DEVNULL,  # prevent bob from blocking on stdin (Windows)
             capture_output=True,
             text=True,
             timeout=120,
+            env=bob_env,
         )
     except Exception as exc:
         print(f"BOB FAILED: subprocess error — {exc}", file=sys.stderr)
@@ -141,14 +270,46 @@ def _invoke_bob(node_id: str, test_file: str, test_function: str) -> dict | None
         return None
 
     raw = proc.stdout.strip()
+
+    # Parse the Bob Shell JSON envelope.
     try:
-        data = json.loads(raw)
+        envelope = json.loads(raw)
     except json.JSONDecodeError as exc:
         print(f"BOB FAILED: response is not valid JSON — {exc}", file=sys.stderr)
         return None
 
+    # Extract last_message from the envelope.
+    if not isinstance(envelope, dict) or "last_message" not in envelope:
+        print(
+            f"BOB FAILED: JSON envelope missing 'last_message' key — keys: {list(envelope.keys()) if isinstance(envelope, dict) else type(envelope).__name__}",
+            file=sys.stderr,
+        )
+        return None
+
+    last_message = envelope["last_message"]
+
+    # last_message may be a JSON string (parse it) or already a dict.
+    if isinstance(last_message, str):
+        try:
+            data = json.loads(last_message)
+        except json.JSONDecodeError as exc:
+            print(f"BOB FAILED: last_message is not valid JSON — {exc}", file=sys.stderr)
+            return None
+    elif isinstance(last_message, dict):
+        data = last_message
+    else:
+        print(
+            f"BOB FAILED: last_message has unexpected type {type(last_message).__name__}",
+            file=sys.stderr,
+        )
+        return None
+
     # Ensure test_name carries the full node ID the caller passed in, not a truncated form.
     data["test_name"] = node_id
+
+    # Normalize hypotheses: keep only allowed enum values, drop unknown labels.
+    if isinstance(data.get("hypotheses"), list):
+        data["hypotheses"] = _normalize_hypotheses(data["hypotheses"])
 
     try:
         _validate(data)
@@ -266,7 +427,10 @@ def run(node_id: str) -> dict:
 
     # Fall back to deterministic Python if Bob was unavailable or failed
     if result is None:
+        print("[PLANNER] using fallback", file=sys.stderr)
         result = _fallback(node_id, test_file)
+    else:
+        print("[PLANNER] using real Bob", file=sys.stderr)
 
     _validate(result)
     return result
