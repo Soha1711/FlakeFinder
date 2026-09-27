@@ -1,0 +1,7 @@
+{
+  "subagent": "shuffle",
+  "test_name": "tests/test_b_race.py::test_background_update_completes",
+  "evidence": "10 runs: 9 passes, 1 failure. The single failure (seed=44535) was preceded by tests.test_async_worker_stable::test_demo_delay_is_non_negative. The same predecessor appeared in runs 4 and 5 with PASS results, so it is not a reliable predictor.",
+  "hypothesis": "The test fails intermittently (~10%) regardless of predecessor, suggesting an internal race condition (timing/thread) rather than order-dependency. The single failure with that predecessor is insufficient to implicate it as a cause.",
+  "confidence": "low"
+}

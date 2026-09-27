@@ -1,0 +1,49 @@
+I'm fully oriented. Here's a summary of my role and the current state of the FlakeFinder project:
+
+---
+
+## Git-Bisect Subagent — Ready
+
+I am the **Git-Bisect subagent** for FlakeFinder. My specific role in the pipeline is to run `git bisect` over the `demo-repo` commit history to pinpoint which commit **introduced a flaky test**, using repeated test runs to classify each commit as good or bad.
+
+### My Script: [`agents/scripts/git_bisect_runner.sh`](agents/scripts/git_bisect_runner.sh)
+
+**What it does:**
+| Concept | Detail |
+|---|---|
+| **Input** | `<test_path::test_name>` `<N>` `<failure_threshold>` |
+| **Known good anchor** | Parent of commit `04805c1` (hardcoded) |
+| **Known bad** | `HEAD` of `demo-repo` |
+| **Classification** | Runs the target test `N` times per commit; if failures ≥ threshold → `git bisect bad`, else → `git bisect good` |
+| **Output** | Final bisect log showing the first bad commit |
+| **Cleanup** | Calls `git bisect reset` after finding the culprit |
+
+**Example invocation (from the Step 6 measurement procedure):**
+```bash
+bash agents/scripts/git_bisect_runner.sh tests/test_a_order.py::test_cache_starts_clean 5 2
+```
+
+---
+
+### Project Context
+
+- **Target test:** `tests/test_a_order.py::test_cache_starts_clean` — order-dependency flakiness, ~55% pass rate
+- **Known bad commit:** `c6565b2`
+- **Demo repo:** [`demo-repo/`](demo-repo/) — contains the test files and git history under bisection
+- **Pipeline position:** Step 4 of 6 (after Isolation and Order-Shuffle subagents, before Static-Pattern scan)
+
+---
+
+### Current Project State
+
+All four Step 6 sub-tasks are marked **done** in [`step6-plan.md`](step6-plan.md):
+- ✅ `run_planner.py` created
+- ✅ `tests/test_run_planner.py` created
+- ✅ `docs/step6_measurement.md` created
+- ✅ `reports/step6_results.md` created
+
+What would you like me to do? I can:
+1. **Run the bisect** against `demo-repo` for a given test
+2. **Inspect or modify** `git_bisect_runner.sh`
+3. **Investigate the demo-repo** commit history and test files
+4. **Diagnose** a specific flaky test using bisection

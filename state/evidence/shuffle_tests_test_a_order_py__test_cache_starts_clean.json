@@ -1,0 +1,7 @@
+{
+  "subagent": "shuffle",
+  "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+  "evidence": "10 runs: 9 passes, 1 failure. Failure occurred with seed 20262; immediate predecessor was tests.test_d_regression::test_calculate_total.",
+  "hypothesis": "test_cache_starts_clean is order-dependent; it fails when preceded by tests that mutate shared_cache without cleanup. test_d_regression::test_calculate_total is a candidate predecessor but one sample is insufficient to confirm causation.",
+  "confidence": "low"
+}

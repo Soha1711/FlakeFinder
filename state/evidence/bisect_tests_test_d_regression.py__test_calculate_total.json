@@ -1,0 +1,7 @@
+{
+  "confidence": "high",
+  "evidence": "Actual git-bisect runner completed. Expected first bad commit confirmed: 04805c176d22dc3b07ed581cfa99fc1e7b5dd37e. The commit is the regression introduction identified by the scripted bisect.",
+  "hypothesis": "The regression was introduced by the first bad commit identified by git bisect.",
+  "subagent": "bisect",
+  "test_name": "tests/test_d_regression.py::test_calculate_total"
+}

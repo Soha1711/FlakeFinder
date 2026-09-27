@@ -1,0 +1,79 @@
+Here is the complete **History subagent** report — all mentions of `test_cache_starts_clean`, `shared_cache`, and order-dependency found across every project document:
+
+---
+
+## History Subagent Evidence Report
+
+**Target:** `tests/test_a_order.py::test_cache_starts_clean`
+**Search scope:** All `.md` files in `demo-repo/` and the top-level `FlakeFinder/` project
+
+---
+
+### 1. [`demo-repo/README.md`](demo-repo/README.md:11) — canonical description
+
+> **Test A: Shared-State / Order Dependency**
+> - **Target Test:** `tests/test_a_order.py` (`test_cache_starts_clean`)
+> - **Contaminating Test:** `tests/test_shared_cache_mutator.py` (`test_contaminate_shared_cache`)
+> - **Source Module:** `src/shared_cache.py`
+> - **Root cause:** `shared_cache` is a module-level mutable dict; `test_shared_cache_mutator.py` modifies it without restoring it. When `test_a_order.py` runs after the mutator, `assert shared_cache["user"] == "clean"` fails.
+
+**Empirical baseline (20 runs, unseeded):** 11 passes / 9 failures = **55% pass rate** (see [`baseline.md`](demo-repo/baseline.md))
+
+---
+
+### 2. [`demo-repo/baseline.md`](demo-repo/baseline.md) — measured baseline + historical note
+
+- 20 randomized trials: **11 passes, 9 failures, 55% pass rate**
+- Confirmed failure ordering: `test_shared_cache_mutator.py → test_a_order.py` → **FAIL** (9/9 trials)
+- Confirmed pass ordering: `test_a_order.py → test_shared_cache_mutator.py` → **PASS** (11/11 trials)
+- **Historical incident:** An earlier experiment version incorrectly paired Test A with `tests/test_b_race.py`. The experiment was corrected to use the dedicated `test_shared_cache_mutator.py`.
+
+---
+
+### 3. [`demo-repo/demo_verification.md`](demo-repo/demo_verification.md:5) — empirical verification
+
+- Test alone: **PASS** (1/1)
+- Correct order (`test_a_order.py` before mutator): **PASS** (2/2)
+- Reversed order (`test_shared_cache_mutator.py` before `test_a_order.py`): **FAIL** — `assert 'contaminated' == 'clean'`
+
+---
+
+### 4. [`docs/step6_measurement.md`](docs/step6_measurement.md:6) — measurement procedure
+
+States the ground-truth root cause for timing comparison:
+
+> *"Order-dependency — `test_shared_cache_mutator.py` mutates module-level `shared_cache["user"]` without teardown; when it runs before `test_a_order.py`, the assertion `assert shared_cache["user"] == "clean"` fails."*
+
+---
+
+### 5. [`reports/step6_results.md`](reports/step6_results.md) — recorded measurement results
+
+| Method | Time | Root Cause Identified |
+|---|---:|---|
+| Manual diagnosis | 05:18 | Yes |
+| FlakeFinder pipeline | 10:15.64 | Yes |
+
+**Root cause confirmed:** Order dependency from module-level `shared_cache` being mutated by `test_shared_cache_mutator.py` without teardown.
+**Note:** Bob CLI was unavailable; planner used deterministic fallback. Windows PowerShell equivalents used for Bash scripts.
+
+---
+
+### 6. [`step6-plan.md`](step6-plan.md:8) — project plan
+
+Confirms target test and known ground truth:
+> *"Order-dependency flakiness; 55% pass rate; known ground truth. Chosen for reproducibility."*
+
+---
+
+### Summary of findings
+
+| Document | Mentions `test_cache_starts_clean` | Mentions `shared_cache` | Mentions order-dependency |
+|---|:---:|:---:|:---:|
+| `demo-repo/README.md` | ✅ | ✅ | ✅ |
+| `demo-repo/baseline.md` | ✅ (implied) | ✅ | ✅ |
+| `demo-repo/demo_verification.md` | ✅ | — | ✅ |
+| `docs/step6_measurement.md` | ✅ | ✅ | ✅ |
+| `reports/step6_results.md` | ✅ | ✅ | ✅ |
+| `step6-plan.md` | ✅ | ✅ | ✅ |
+
+**Prior incidents found:** One — the pairing of Test A with `test_b_race.py` (wrong contaminating test), corrected before the baseline was recorded. No other incidents logged. Root cause is fully documented across multiple sources; no conflicting accounts exist.
