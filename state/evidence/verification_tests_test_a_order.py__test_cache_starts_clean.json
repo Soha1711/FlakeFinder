@@ -1,0 +1,28 @@
+{
+  "after_fix": {
+    "failures": 0,
+    "passes": 10,
+    "runs": 10
+  },
+  "before_fix": {
+    "failures": 0,
+    "passes": 10,
+    "runs": 10
+  },
+  "fix_confirmed": false,
+  "regression_check": {
+    "tests/test_shared_cache_mutator.py::test_contaminate_shared_cache": {
+      "failures": 0,
+      "passes": 3,
+      "runs": 3
+    },
+    "tests/test_shared_cache_stable.py::test_cache_initial_value": {
+      "failures": 0,
+      "passes": 3,
+      "runs": 3
+    }
+  },
+  "regression_safe": true,
+  "subagent": "verification",
+  "test_name": "tests/test_a_order.py::test_cache_starts_clean"
+}

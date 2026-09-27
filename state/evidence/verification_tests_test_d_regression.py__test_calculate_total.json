@@ -1,0 +1,28 @@
+{
+  "after_fix": {
+    "failures": 0,
+    "passes": 10,
+    "runs": 10
+  },
+  "before_fix": {
+    "failures": 4,
+    "passes": 6,
+    "runs": 10
+  },
+  "fix_confirmed": true,
+  "regression_check": {
+    "tests/test_regression_stable.py::test_calculate_total_empty_list": {
+      "failures": 0,
+      "passes": 3,
+      "runs": 3
+    },
+    "tests/test_regression_stable.py::test_calculate_total_multiple_items": {
+      "failures": 0,
+      "passes": 3,
+      "runs": 3
+    }
+  },
+  "regression_safe": true,
+  "subagent": "verification",
+  "test_name": "tests/test_d_regression.py::test_calculate_total"
+}
