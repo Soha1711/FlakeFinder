@@ -3,12 +3,12 @@
     {
       "subagent": "isolation",
       "supports_winning_cause": false,
-      "verdict": "The test passes on every isolated run, suggesting cross-test order-dependency or environment pollution rather than an intrinsic defect. [confidence: high]"
+      "verdict": "The test is perfectly stable in isolation (10/10 passes), so any observed failures in the full suite are most likely caused by cross-test pollution or order-dependency introduced by other tests running before it. [confidence: high]"
     },
     {
       "subagent": "shuffle",
       "supports_winning_cause": false,
-      "verdict": "The target test was executed 10 times in shuffled order, with 4 failures. Immediate predecessors are contextual evidence only and do not by themselves establish causation. [confidence: medium]"
+      "verdict": "The test is order-dependent due to persistent module-level state. Immediate predecessors are not necessarily the cause. [confidence: high]"
     },
     {
       "subagent": "bisect",

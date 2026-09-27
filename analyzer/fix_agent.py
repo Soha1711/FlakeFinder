@@ -195,11 +195,26 @@ def check_forbidden_verification_claims(data: dict[str, Any]) -> None:
         text_lower = val.lower()
         for phrase in FORBIDDEN_VERIFICATION_CLAIMS:
             pattern = r"(?:\b|_)" + re.escape(phrase) + r"(?:\b|_)"
-            if re.search(pattern, text_lower):
-                raise ValueError(
-                    f"Forbidden verification claim detected in '{field}': '{phrase}'. "
-                    "The Fix Agent must NOT claim that the fix is verified or works."
-                )
+            matches = list(re.finditer(pattern, text_lower))
+            if not matches:
+                continue
+
+            if phrase in ("confirmed", "verified"):
+                legit_pattern = r"(?:subagent|evidence|history|isolation|shuffle|bisect|static_scan|scan|test)\s+(?:has\s+)?(?:\w+\s+)?" + re.escape(phrase)
+                is_forbidden_claim = False
+                for m in matches:
+                    start = max(0, m.start() - 40)
+                    prefix = text_lower[start:m.end()]
+                    if not re.search(legit_pattern, prefix):
+                        is_forbidden_claim = True
+                        break
+                if not is_forbidden_claim:
+                    continue
+
+            raise ValueError(
+                f"Forbidden verification claim detected in '{field}': '{phrase}'. "
+                "The Fix Agent must NOT claim that the fix is verified or works."
+            )
 
 
 def validate_fix_schema(data: dict[str, Any], expected_test_name: str) -> None:

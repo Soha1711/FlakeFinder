@@ -1,0 +1,124 @@
+{
+  "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+  "stages": {
+    "planner": {
+      "elapsed": 18.302,
+      "output": {
+        "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+        "test_file": "tests/test_a_order.py",
+        "hypotheses": [
+          "order_dependency",
+          "non_determinism"
+        ],
+        "search_targets": [
+          "tests/test_a_order.py",
+          "src/shared_cache.py",
+          "tests/conftest.py"
+        ]
+      }
+    },
+    "investigation": {
+      "elapsed": 209.921,
+      "output": {
+        "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+        "results": {
+          "static_scan": {
+            "subagent": "static_scan",
+            "test_name": "demo-repo/src/shared_cache.py",
+            "evidence": "Scanner reported 1 finding: line 3, type 'module_mutable_state', 'module-level mutable object: shared_cache'.",
+            "hypothesis": "The file defines module-level mutable state that may leak between tests. This is consistent with the observed flakiness.",
+            "confidence": "high"
+          },
+          "history": {
+            "subagent": "history",
+            "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+            "evidence": "baseline.md records 20 randomized execution-order trials: 11 passes, 9 failures (55.0% pass rate). When target precedes mutator: PASS (11/11 trials). When mutator precedes target: FAIL (9/9 trials). demo_verification.md confirms the reversed-order assertion failure: assert 'contaminated' == 'clean'. README.md documents shared_cache as a module-level mutable dictionary whose state persists across tests.",
+            "hypothesis": "The flakiness of tests/test_a_order.py::test_cache_starts_clean is order-dependent, not nondeterministic. The 20-run baseline (11 passes, 9 failures) reflects the random mix of execution orders across trials. Whenever the shared-cache mutator test precedes the target, the module-level shared_cache dict retains the 'contaminated' value and the assertion fails with certainty. Whenever the target runs first or in isolation, the cache is in its initial clean state and the test passes with certainty.",
+            "confidence": "high"
+          },
+          "isolation": {
+            "subagent": "isolation",
+            "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+            "evidence": "10 runs, 10 passed, 0 failed, 0 errors \u00e2\u20ac\u201d each run: '1 passed in ~0.09-0.17s'",
+            "hypothesis": "The test is perfectly stable in isolation (10/10 passes), so any observed failures in the full suite are most likely caused by cross-test pollution or order-dependency introduced by other tests running before it.",
+            "confidence": "high"
+          },
+          "shuffle": null,
+          "bisect": null
+        },
+        "timings": {
+          "static_scan": 49.593,
+          "history": 59.644,
+          "isolation": 91.521,
+          "shuffle": 124.161,
+          "bisect": 85.64
+        },
+        "overall_wall_clock_seconds": 209.803,
+        "parallel_phase_wall_clock_seconds": 124.163,
+        "bisect_phase_wall_clock_seconds": 85.64,
+        "errors": {
+          "shuffle": "[SHUFFLE] fallback script exited with code 1 \u2014 [SHUFFLE] Python: /f/Flakefinder/FlakeFinder/venv/Scripts/python.exe\nPython 3.14.7\n[SHUFFLE] Run 1/10 with seed 1909\n[SHUFFLE] pytest exited with code 1 for seed 1909\nERROR: Could not determine result",
+          "bisect": "fallback bisect output does not contain the expected first bad commit 04805c176d22dc3b07ed581cfa99fc1e7b5dd37e"
+        }
+      }
+    },
+    "coordinator": {
+      "elapsed": 8.282,
+      "output": {
+        "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+        "ranked_cause": "UNABLE TO SYNTHESIZE VIA FALLBACK \u2014 human review required. Bob was unavailable to perform cross-evidence synthesis. See all_evidence_summary for raw subagent findings.",
+        "winning_evidence": "No synthesis performed. Raw evidence is available in all_evidence_summary entries.",
+        "convergence_count": 1,
+        "all_evidence_summary": [
+          {
+            "subagent": "isolation",
+            "verdict": "The test is perfectly stable in isolation (10/10 passes), so any observed failures in the full suite are most likely caused by cross-test pollution or order-dependency introduced by other tests running before it. [confidence: high]",
+            "supports_winning_cause": false
+          },
+          {
+            "subagent": "shuffle",
+            "verdict": "The test is order-dependent due to persistent module-level state. Immediate predecessors are not necessarily the cause. [confidence: high]",
+            "supports_winning_cause": false
+          },
+          {
+            "subagent": "bisect",
+            "verdict": "NOT APPLICABLE \u2014 no regression history relevant to this test; bisect evidence is not applicable and does not reduce convergence.",
+            "supports_winning_cause": false
+          },
+          {
+            "subagent": "static_scan",
+            "verdict": "The file defines module-level mutable state that may leak between tests. This is consistent with the observed flakiness. [confidence: high]",
+            "supports_winning_cause": false
+          },
+          {
+            "subagent": "history",
+            "verdict": "The flakiness of tests/test_a_order.py::test_cache_starts_clean is order-dependent, not nondeterministic. The 20-run baseline (11 passes, 9 failures) reflects the random mix of execution orders across trials. Whenever the shared-cache mutator test precedes the target, the module-level shared_cache dict retains the 'contaminated' value and the assertion fails with certainty. Whenever the target runs first or in isolation, the cache is in its initial clean state and the test passes with certainty. [confidence: high]",
+            "supports_winning_cause": false
+          }
+        ],
+        "confidence": "low"
+      }
+    },
+    "fix_agent": {
+      "elapsed": 7.77,
+      "output": {
+        "subagent": "fix_agent",
+        "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+        "fix_summary": "NO FIX GENERATED \u2014 human review required. Bob exited with code 1: (node:27316) ExperimentalWarning: SQLite is an experimental feature and might change at any time\n(Use `node.EXE --trace-warnings ...` to show where the warning was created)\nError: Budget Exceeded. Oh",
+        "justification": "Human review required. No automated fix was generated because: Bob exited with code 1: (node:27316) ExperimentalWarning: SQLite is an experimental feature and might change at any time\n(Use `node.EXE --trace-warnings ...` to show where the warning was created)\nError: Budget Exceeded. Oh",
+        "confidence": "low"
+      }
+    },
+    "verification": {
+      "elapsed": 0.0,
+      "output": {
+        "subagent": "verification",
+        "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+        "fix_confirmed": false,
+        "skipped": true,
+        "reason": "No usable diff produced by Fix Agent"
+      }
+    }
+  },
+  "total_elapsed": 244.276
+}

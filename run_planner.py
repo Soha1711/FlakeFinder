@@ -433,7 +433,12 @@ def run(node_id: str) -> dict:
         print("[PLANNER] using real Bob", file=sys.stderr)
 
     _validate(result)
+    _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _OUTPUT_FILE.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result
+
+
+run_planner = run
 
 
 # ---------------------------------------------------------------------------

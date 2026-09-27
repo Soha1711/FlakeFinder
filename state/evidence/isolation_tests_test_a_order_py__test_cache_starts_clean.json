@@ -1,7 +1,7 @@
 {
   "subagent": "isolation",
   "test_name": "tests/test_a_order.py::test_cache_starts_clean",
-  "evidence": "runs: 10, passes: 10, failures: 0",
-  "hypothesis": "The test passes on every isolated run, suggesting cross-test order-dependency or environment pollution rather than an intrinsic defect.",
+  "evidence": "10 runs, 10 passed, 0 failed, 0 errors \u00e2\u20ac\u201d each run: '1 passed in ~0.09-0.17s'",
+  "hypothesis": "The test is perfectly stable in isolation (10/10 passes), so any observed failures in the full suite are most likely caused by cross-test pollution or order-dependency introduced by other tests running before it.",
   "confidence": "high"
 }

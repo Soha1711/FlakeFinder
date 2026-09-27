@@ -502,6 +502,11 @@ def run(test_name: str) -> dict:
     return result
 
 
+def run_all_subagents_parallel(test_name: str) -> dict:
+    from analyzer.run_all_subagents import run_all
+    return run_all(test_name)
+
+
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
