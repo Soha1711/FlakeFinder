@@ -1,0 +1,7 @@
+{
+  "confidence": "high",
+  "fix_summary": "Add a conftest.py autouse fixture that calls the existing reset_cache() before every test, preventing the module-level shared_cache dict from leaking contaminated state across test boundaries.",
+  "justification": "The history and static_scan subagents both identify the module-level shared_cache dict in src/shared_cache.py as mutable state with no reset between tests. test_shared_cache_mutator.py::test_contaminate_shared_cache sets shared_cache['user'] = 'contaminated' and has no teardown; whenever it precedes test_cache_starts_clean the assertion fails with certainty. The fix targets exactly that missing teardown by invoking the already-existing reset_cache() via an autouse fixture, without modifying any existing file.",
+  "subagent": "fix_agent",
+  "test_name": "tests/test_a_order.py::test_cache_starts_clean"
+}

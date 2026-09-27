@@ -1,0 +1,47 @@
+The picture is completely clear now. The evidence converges on two independent causes, and the git history confirms both:
+
+1. **`static_scan`**: `random.random()` with no seed introduced non-determinism directly in [`calculate_total()`](demo-repo/src/regression.py:6).
+2. **`history`**: The `os.getenv("FLAKE_DEMO_SEED")` path in the current code shows the seed guard was added later (commit `af7c0e4`) but never fully fixed — when no seed is set, the bare `random.random()` path still fires.
+3. **`bisect`**: Commit `04805c1` ("Introduce regression causing flaky calculation") is the exact bad commit that added the random logic.
+
+The pre-regression state (before commit `04805c1`) was simply `return sum(items)`. The minimal fix is to revert [`src/regression.py`](demo-repo/src/regression.py) to that correct behaviour.
+
+---
+
+```diff
+--- a/demo-repo/src/regression.py
++++ b/demo-repo/src/regression.py
+@@ -1,18 +1,5 @@
+-import os
+-import random
+-
+-
+ def calculate_total(items):
+-    total = sum(items)
+-
+-    # REGRESSION:
+-    # Random behavior was accidentally introduced here.
+-    seed = os.getenv("FLAKE_DEMO_SEED")
+-    if seed is not None:
+-        rng = random.Random(int(seed))
+-        if rng.random() < 0.5:
+-            total += 1
+-    else:
+-        if random.random() < 0.5:
+-            total += 1
+-
+-    return total
++    return sum(items)
+```
+
+---
+
+```json
+{
+  "subagent": "fix_agent",
+  "test_name": "tests/test_d_regression.py::test_calculate_total",
+  "fix_summary": "Remove the randomly-branching `total += 1` block introduced in commit 04805c1 from `calculate_total`, reverting the function to its original deterministic `return sum(items)` form.",
+  "justification": "The bisect subagent identifies commit 04805c1 ('Introduce regression causing flaky calculation') as the first bad commit; that commit's diff shows exactly the random.random() block being added to src/regression.py. The static_scan subagent independently confirms `random` is imported without a fixed seed, making every call to calculate_total non-deterministic. The history subagent's contaminated-cache narrative is a separate concern for a different test; for test_calculate_total the root defect is the spurious +1 branch. Removing the entire random block and the now-unused os/random imports restores the deterministic pre-regression behaviour the test asserts (sum([10,20,30]) == 60).",
+  "confidence": "high"
+}
+```

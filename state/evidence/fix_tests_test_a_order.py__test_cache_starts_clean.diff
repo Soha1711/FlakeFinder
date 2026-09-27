@@ -1,0 +1,18 @@
+---
+
+**Unified diff**
+
+```diff
+--- /dev/null
++++ demo-repo/tests/conftest.py
+@@ -0,0 +1,7 @@
++import pytest
++from src.shared_cache import reset_cache
++
++
++@pytest.fixture(autouse=True)
++def reset_shared_cache():
++    reset_cache()
+```
+
+---

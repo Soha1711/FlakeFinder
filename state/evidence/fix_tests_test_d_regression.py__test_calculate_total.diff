@@ -1,0 +1,23 @@
+--- a/demo-repo/src/regression.py
++++ b/demo-repo/src/regression.py
+@@ -1,18 +1,5 @@
+-import os
+-import random
+-
+-
+ def calculate_total(items):
+-    total = sum(items)
+-
+-    # REGRESSION:
+-    # Random behavior was accidentally introduced here.
+-    seed = os.getenv("FLAKE_DEMO_SEED")
+-    if seed is not None:
+-        rng = random.Random(int(seed))
+-        if rng.random() < 0.5:
+-            total += 1
+-    else:
+-        if random.random() < 0.5:
+-            total += 1
+-
+-    return total
++    return sum(items)
