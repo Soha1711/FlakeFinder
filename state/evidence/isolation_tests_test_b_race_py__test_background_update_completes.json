@@ -1,0 +1,7 @@
+{
+  "subagent": "isolation",
+  "test_name": "tests/test_b_race.py::test_background_update_completes",
+  "evidence": "runs: 10, passes: 8, failures: 2",
+  "hypothesis": "The test fails ~20% of the time in isolation indicating a race condition.",
+  "confidence": "high"
+}
