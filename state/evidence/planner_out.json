@@ -1,0 +1,11 @@
+{
+  "test_name": "tests/test_a_order.py::test_cache_starts_clean",
+  "test_file": "tests/test_a_order.py",
+  "hypotheses": [
+    "order_dependency"
+  ],
+  "search_targets": [
+    "tests/test_a_order.py",
+    "src/shared_cache.py"
+  ]
+}
