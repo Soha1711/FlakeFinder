@@ -1,7 +1,7 @@
 {
   "subagent": "isolation",
   "test_name": "tests/test_b_race.py::test_background_update_completes",
-  "evidence": "runs: 10, passes: 5, failures: 5",
-  "hypothesis": "The test fails 5/10 times in isolation, indicating an intrinsic non-deterministic flake (race condition or timing sensitivity) rather than pure cross-test order-dependency.",
-  "confidence": "high"
+  "evidence": "runs: 10, passes: 8, failures: 2",
+  "hypothesis": "The test fails 2/10 times in isolation, indicating an intrinsic non-deterministic flake (race condition or timing sensitivity) rather than pure cross-test order-dependency.",
+  "confidence": "medium"
 }

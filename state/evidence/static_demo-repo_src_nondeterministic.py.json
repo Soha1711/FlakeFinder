@@ -1,0 +1,7 @@
+{
+  "confidence": "high",
+  "evidence": "Scanner reported 1 finding: line 2, type 'random_usage', 'imports random module'.",
+  "hypothesis": "The file imports the random module without a fixed seed, introducing non-determinism. This is consistent with the observed flakiness.",
+  "subagent": "static_scan",
+  "test_name": "demo-repo/src/nondeterministic.py"
+}

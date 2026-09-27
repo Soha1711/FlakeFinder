@@ -1,0 +1,7 @@
+{
+  "confidence": "high",
+  "evidence": "Scanner reported 3 findings: line 3, type 'random_usage', 'imports random module'; line 31, type 'module_mutable_state', 'module-level mutable object: result'; line 34, type 'async_task', 'calls asyncio.create_task'.",
+  "hypothesis": "The file imports the random module without a fixed seed, introducing non-determinism; uses asyncio.create_task, which may produce race conditions if tasks are not awaited; defines module-level mutable state that may leak between tests. This is consistent with the observed flakiness.",
+  "subagent": "static_scan",
+  "test_name": "demo-repo/src/async_worker.py"
+}

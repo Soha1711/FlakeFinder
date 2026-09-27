@@ -1,0 +1,7 @@
+{
+  "confidence": "high",
+  "evidence": "Scanner reported 1 finding: line 3, type 'module_mutable_state', 'module-level mutable object: shared_cache'.",
+  "hypothesis": "The file defines module-level mutable state that may leak between tests. This is consistent with the observed flakiness.",
+  "subagent": "static_scan",
+  "test_name": "demo-repo/src/shared_cache.py"
+}

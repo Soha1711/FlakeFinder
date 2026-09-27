@@ -1,0 +1,7 @@
+{
+  "subagent": "isolation",
+  "test_name": "tests/test_c_random.py::test_value_is_valid",
+  "evidence": "runs: 10, passes: 7, failures: 3",
+  "hypothesis": "The test fails 3/10 times in isolation, indicating an intrinsic non-deterministic flake (race condition or timing sensitivity) rather than pure cross-test order-dependency.",
+  "confidence": "high"
+}

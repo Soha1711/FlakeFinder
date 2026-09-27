@@ -1,0 +1,7 @@
+{
+  "confidence": "high",
+  "evidence": "baseline.md records 20 randomized execution-order trials: 11 passes, 9 failures (55.0% pass rate). When target precedes mutator: PASS (11/11 trials). When mutator precedes target: FAIL (9/9 trials). demo_verification.md confirms the reversed-order assertion failure: assert 'contaminated' == 'clean'. README.md documents shared_cache as a module-level mutable dictionary whose state persists across tests.",
+  "hypothesis": "The flakiness of tests/test_b_race.py::test_background_update_completes is order-dependent, not nondeterministic. The 20-run baseline (11 passes, 9 failures) reflects the random mix of execution orders across trials. Whenever the shared-cache mutator test precedes the target, the module-level shared_cache dict retains the 'contaminated' value and the assertion fails with certainty. Whenever the target runs first or in isolation, the cache is in its initial clean state and the test passes with certainty.",
+  "subagent": "history",
+  "test_name": "tests/test_b_race.py::test_background_update_completes"
+}
